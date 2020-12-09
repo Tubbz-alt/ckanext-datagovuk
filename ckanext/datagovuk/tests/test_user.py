@@ -1,3 +1,4 @@
+from bs4 import BeautifulSoup
 import pytest
 import unittest
 
@@ -13,7 +14,7 @@ from ckan.plugins.toolkit import url_for
 from ckan.lib.mailer import MailerException, create_reset_key
 
 
-@pytest.mark.skip("no need to test as we will be using core ckan code")
+# @pytest.mark.skip("no need to test as we will be using core ckan code")
 @pytest.mark.usefixtures("clean_db", "with_plugins")
 class TestEditUser:
     def test_edit_user_form(self, app):
@@ -24,14 +25,18 @@ class TestEditUser:
             extra_environ=env,
         )
 
-        form = response.forms['user-edit-form']
+        # form = response.forms['user-edit-form']
+        page = BeautifulSoup(response.get_data(as_text=True), 'html.parser')
+        print("*** test edit user form", page)
+        form = {e['name']: e.get('value', '') for e in page.find_all('input')}
+        print("*** form", form)
 
         # Check the existing values
-        assert form['name'].value == user['name']
-        assert form['fullname'].value == user['fullname']
-        assert form['email'].value == user['email']
-        assert form['password1'].value == ''
-        assert form['password2'].value == ''
+        assert form['name'] == user['name']
+        assert form['fullname'] == user['fullname']
+        assert form['email'] == user['email']
+        assert form['password1'] == ''
+        assert form['password2'] == ''
 
         # Modify the values
         form['fullname'] = 'user fullname'
@@ -39,8 +44,32 @@ class TestEditUser:
         form['old_password'] = 'pass1234'
         form['password1'] = 'Abc12345'
         form['password2'] = 'Abc12345'
-        response = submit_and_follow(app, form, env, 'save')
+        # response = submit_and_follow(app, form, env, 'save')
 
+        # location = _get_location(response)
+        # response = app.post(location,
+        #     extra_environ=env,
+        #     # environ_overrides=user_env, 
+        #     data={
+        #         "id": "",
+        #         "save": "go-dataset"
+        #     }
+        # )
+
+        response = app.post(
+            url=url_for("user.edit"),
+            extra_environ=env,
+            data={
+                "fullname": "user fullname",
+                "email": "test@test.com",
+                "save": "",
+                "old_password": "pass1234",
+                "password1": "Abc12345",
+                "password2": "Abc12345"
+            }
+        )
+
+        print('response', response.get_data(as_text=True))
         user = model.Session.query(model.User).get(user['id'])
         assert user.fullname == 'user fullname'
         assert user.email == 'test@test.com'
@@ -60,17 +89,15 @@ class TestEditUser:
         )
         assert not model.User.by_email("test@gov.uk")
 
-    def test_create_user_via_get_shows_dgu_register_page(self):
-        app = self._get_test_app()
+    def test_create_user_via_get_shows_dgu_register_page(self, app):
         response = app.get(
             url=url_for(controller='user', action='register'),
             status=200
         )
         assert 'https://data.gov.uk/support' in response
 
-    def test_edit_user_form_password_too_short(self):
+    def test_edit_user_form_password_too_short(self, app):
         user = factories.User(password='pass1234')
-        app = self._get_test_app()
         env = {'REMOTE_USER': user['name'].encode('ascii')}
         response = app.get(
             url=url_for("user.edit"),
@@ -87,9 +114,8 @@ class TestEditUser:
 
         assert 'Your password must be 8 characters or longer' in response
 
-    def test_edit_user_form_password_no_lower_case(self):
+    def test_edit_user_form_password_no_lower_case(self, app):
         user = factories.User(password='pass1234')
-        app = self._get_test_app()
         env = {'REMOTE_USER': user['name'].encode('ascii')}
         response = app.get(
             url=url_for("user.edit"),
@@ -106,9 +132,8 @@ class TestEditUser:
 
         assert 'Your password must contain at least one upper and one lower case character' in response
 
-    def test_edit_user_form_password_no_upper_case(self):
+    def test_edit_user_form_password_no_upper_case(self, app):
         user = factories.User(password='pass1234')
-        app = self._get_test_app()
         env = {'REMOTE_USER': user['name'].encode('ascii')}
         response = app.get(
             url=url_for("user.edit"),
@@ -125,9 +150,8 @@ class TestEditUser:
 
         assert 'Your password must contain at least one upper and one lower case character' in response
 
-    def test_edit_user_form_passwords_not_matching(self):
+    def test_edit_user_form_passwords_not_matching(self, app):
         user = factories.User(password='pass1234')
-        app = self._get_test_app()
         env = {'REMOTE_USER': user['name'].encode('ascii')}
         response = app.get(
             url=url_for("user.edit"),
@@ -144,9 +168,8 @@ class TestEditUser:
 
         assert 'The passwords you entered do not match' in response
 
-    def test_edit_user_form_password_missing(self):
+    def test_edit_user_form_password_missing(self, app):
         user = factories.User(password='pass1234')
-        app = self._get_test_app()
         env = {'REMOTE_USER': user['name'].encode('ascii')}
         response = app.get(
             url=url_for("user.edit"),
