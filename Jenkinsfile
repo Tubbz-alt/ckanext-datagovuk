@@ -15,6 +15,7 @@ node ('!(ci-agent-4)') {
 
     stage('Check python version') {
       sh("python3 --version")
+      sh("apt-cache search python3.6")
     }
 
     stage('Installing Packages') {
