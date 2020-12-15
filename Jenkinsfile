@@ -13,6 +13,10 @@ node ('!(ci-agent-4)') {
       govuk.mergeMasterBranch()
     }
 
+    stage('Check python version') {
+      sh("python3 --version")
+    }
+
     stage('Installing Packages') {
       sh("rm -rf ./venv")
       sh("virtualenv --no-site-packages ./venv")
