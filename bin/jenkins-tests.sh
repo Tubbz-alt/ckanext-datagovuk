@@ -23,7 +23,7 @@ export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
 ckan -c test-jenkins.ini db init
-ckan -c test-jenkins.ini harvest harvester initdb
+ckan -c test-jenkins.ini harvester initdb
 
 export TEST_CKAN_INI=test-jenkins.ini
 bin/run-tests.sh
